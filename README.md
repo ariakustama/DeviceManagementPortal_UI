@@ -11,7 +11,7 @@
 than go to Tools, </br>
 choose NuGet Package Manager, </br>
 than Package Manager Console </br>
-3. typing on console ==> Add-Migration "Initial-Create" <Enter>  </br>
+3. typing on console ==> Add-Migration "Initial-Create2" <Enter>  </br>
 4. than typing ==> Update-Database <Enter>  </br>
 
 -Registration your acount with email without email confirmation
