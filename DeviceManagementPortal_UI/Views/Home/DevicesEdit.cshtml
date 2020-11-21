@@ -1,0 +1,209 @@
+﻿@model DeviceManagementPortal_UI.Models.DevicesViewModel
+
+@{
+    ViewData["Title"] = "Devices " + ViewBag.Mode;
+}
+
+<h1>Devices @ViewBag.Mode</h1>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="DevicesEdit" id="formDevice">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="form-group">
+                <input asp-for="Id" type="hidden" id="iddevice" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label asp-for="IMEI" class="control-label"></label>
+                <input asp-for="IMEI" class="form-control" />
+                <span asp-validation-for="IMEI" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Model" class="control-label"></label>
+                <input asp-for="Model" class="form-control" />
+                <span asp-validation-for="Model" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="SimCardNo" class="control-label"></label>
+                <input asp-for="SimCardNo" class="form-control" />
+                <span asp-validation-for="SimCardNo" class="text-danger"></span>
+            </div>
+            <div class="form-group form-check">
+                <label class="form-check-label">
+                    <input class="form-check-input" asp-for="Enabled" /> @Html.DisplayNameFor(model => model.Enabled)
+                </label>
+            </div>
+            <div class="form-group">
+                <label asp-for="CreatedDate" class="control-label"></label>
+                <input asp-for="CreatedDate" class="form-control" />
+                <span asp-validation-for="CreatedDate" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="button" value="Save" id="submitForm" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+    <div class="col-md-8">
+        <div class="form-group">
+            <input type="button" value="Add Backend" id="AddBackEnd" class="btn btn-primary" />
+
+        </div>
+        <table id="tableBacnEnd">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Address</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
+
+<script>
+    var mode = "@ViewBag.Mode";
+    var dataId = $("#iddevice").val();
+    var datatableBackEnd;
+    $.fn.serializeObject = function () {
+        var o = {};
+        var a = this.serializeArray();
+        $.each(a, function () {
+            if (o[this.name]) {
+                if (!o[this.name].push) {
+                    o[this.name] = [o[this.name]];
+                }
+                o[this.name].push(this.value || '');
+            } else {
+                o[this.name] = this.value || '';
+            }
+        });
+        return o;
+    };
+
+    $(document).ready(function () {
+        if (mode == "Detail") {
+            $("#formDevice :input").prop("disabled", true);
+            $("#AddBackEnd").prop("disabled", true);
+        }
+        $.blockUI({ message: '<h1> Just a moment...</h1>' });
+
+        $.ajax({
+            type: "POST",
+            //contentType: "application/x-www-form-urlencoded; charset=UTF-8",
+            //dataType: "json",
+            url: "/Home/GetListBackEndMapping",
+            data: { "id": dataId },
+            success: function (result) {
+                $.unblockUI();
+                if (result.isError) {
+                    $.notify(result.msg, "error");
+                    console.log(result.msg);
+                    return false;
+                }
+                else {
+                    $.notify("Get Data Backend Mapping success", "success");
+                    for (var i = 0; i < result.data.length; i++) {
+                        if (mode == "Detail") {
+                            datatableBackEnd.row.add(['<input type="text" class="backEndName" value="' + result.data[i].name + '" maxlength="20" disabled />',
+                            '<textarea style="resize: none;" rows="4" cols="50" maxlength="50" disabled>' + result.data[i].address + '</textarea>',
+                                '<button class="btnDelete" disabled>Delete</button>']).draw(false);
+                        }
+                        else {
+                            datatableBackEnd.row.add(['<input type="text" data-idbackend="' + result.data[i].id + '" class="backEndName" value="' + result.data[i].name + '" maxlength="20" />',
+                            '<textarea style="resize: none;" rows="4" cols="50" maxlength="50">' + result.data[i].address + '</textarea>',
+                                '<button class="btnDelete">Delete</button>']).draw(false);
+                        }
+                    }
+                }
+            },
+            error: function (result) {
+                $.unblockUI();
+            }
+        });
+
+        datatableBackEnd = $("#tableBacnEnd").DataTable({
+            "searching": false,
+            "bLengthChange": false,
+            "bPaginate": false,
+            "bAutoWidth": false,
+            "bInfo": false,
+            "ordering": false,
+        });
+
+        $("#submitForm").on("click", function (e) {
+            var listBackEnd = [];
+
+            var objDevices = $("#formDevice").serializeObject();
+
+            if ($("#formDevice").valid()) {
+                $.blockUI({ message: '<h1> Just a moment...</h1>' });
+                $("#tableBacnEnd tbody tr").each(function () {
+                    if ($(this).find("td").eq(0).children().val() != "" && $(this).find("td").eq(1).children().val() != "") {
+                        var obj = {};
+                        obj.Id = $(this).find("td").eq(0).children().attr("data-idbackend") == "null" ? null : $(this).find("td").eq(0).children().attr("data-idbackend");
+                        obj.Name = $(this).find("td").eq(0).children().val();
+                        obj.Address = $(this).find("td").eq(1).children().val();
+                        listBackEnd.push(obj);
+                    }
+                });
+
+                var dataDeviceToSend = {};
+                dataDeviceToSend.Id = objDevices.Id;
+                dataDeviceToSend.IMEI = objDevices.IMEI;
+                dataDeviceToSend.Model = objDevices.Model;
+                dataDeviceToSend.SimCardNo = objDevices.SimCardNo;
+                dataDeviceToSend.Enabled = objDevices.Enabled;
+                dataDeviceToSend.CreatedDate = objDevices.CreatedDate;
+                dataDeviceToSend.CreatedBy = $("#emailUser").val();
+                dataDeviceToSend.Mode = "Edit";
+                dataDeviceToSend.listBackEnd = listBackEnd;
+
+                $.ajax({
+                    type: "POST",
+                    contentType: "application/x-www-form-urlencoded; charset=UTF-8",
+                    dataType: "json",
+                    url: "/Home/DevicesSubmit",
+                    data: dataDeviceToSend,
+                    success: function (result) {
+                        $.unblockUI();
+                        if (result.isError) {
+                            $.notify(result.msg, "error");
+                            console.log(result.msg);
+                            return false;
+                        }
+                        else {
+                            $.notify("Insert data success", "success");
+                            setTimeout(function () { window.location.href = "/"; }, 1000);
+
+                        }
+                    },
+                    error: function (result) {
+                        $.unblockUI();
+                    }
+                });
+            }
+        });
+
+        $("#AddBackEnd").on("click", function (e) {
+            datatableBackEnd.row.add(['<input type="text" data-idbackend="null" class="backEndName" value="" maxlength="20" />',
+                '<textarea style="resize: none;" rows="4" cols="50" maxlength="50"></textarea>',
+                '<button class="btnDelete">Delete</button>']).draw(false);
+            //
+        });
+    });
+
+    $(document).on('click', '.btnDelete', function (e) {
+        console.log("b");
+        datatableBackEnd.row($(this).parents('tr')).remove().draw();
+    });
+
+</script>

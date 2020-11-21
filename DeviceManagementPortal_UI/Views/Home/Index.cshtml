@@ -1,0 +1,196 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Welcome</h1>    
+</div>
+<div class="text-center">
+    <h1 class="display-4">Device Data</h1>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="form-group">
+                <input type="button" value="Add New Device" id="AddNewDevices" class="btn btn-primary" />
+            </div>
+        </div>
+    </div>
+    <table id="tableDevices">
+        <thead>
+            <tr>
+                <th>Imei</th>
+                <th>Model</th>
+                <th>Sim Card No</th>
+                <th>Enabled</th>
+                <th>Created Date</th>
+                <th>Created By</th>
+                <th></th>
+                <th></th>
+                <th></th>
+            </tr>
+        </thead>
+    </table>
+</div>
+<script type='text/javascript'>
+    var datatable;
+    $(document).ready(function () {
+       
+
+        datatable = $('#tableDevices').DataTable({
+            responsive: true,
+            searchHighlight: true,
+            serverSide: true,
+            dom: 'Rr<"dataTables_header"Ci>t<"dataTables_footer"p>',
+            processing: true,
+            language: {
+                processing: '<div class="spinner spinner-lg"></div>',
+                "zeroRecords": "No data available in table"
+            },
+            colVis: {
+                "buttonText": "<i class='fa fa-columns'></i>",
+                "sAlign": "right"
+            },
+            ajax: {
+                data: function (param) {
+                    param.param = JSON.stringify({
+                        Name: ""
+                    })
+                },
+                "url": "/Home/DataTableDevices/"
+            },
+            lengthMenu: [
+                [10, 20, 50, 100, -1],
+                ['10', '20', '50', '100', 'All']
+            ],
+            "ordering": false,
+            columns:
+                [
+                    {
+                        name: 'IMEI',
+                        data: 'imei',
+                        width: "8%",
+                        sortable: false,
+                        searchable: false
+                    },
+                    {
+                        name: 'Model',
+                        data: 'model',
+                        width: "8%",
+                        sortable: false,
+                        searchable: false
+                    },
+                    {
+                        name: 'SimCardNo',
+                        data: 'simCardNo',
+                        width: "8%",
+                        sortable: false,
+                        searchable: false
+                    },
+                    {
+                        name: 'Enabled',
+                        data: 'enabled',
+                        width: "8%",
+                        sortable: false,
+                        searchable: false,
+                        "render": function (data, type, row, full, meta) {
+                            if (data == true) {
+                                return '<span>Yes</span>';
+                            }
+                            else {
+                                return '<span>No</span>';
+                            }
+                        }
+                    },
+                    {
+                        name: 'CreatedDateFormat',
+                        data: 'createdDateFormat',
+                        width: "8%",
+                        sortable: false,
+                        searchable: false
+                    },
+                    {
+                        name: 'CreatedBy',
+                        data: 'createdBy',
+                        width: "8%",
+                        sortable: false,
+                        searchable: false
+                    },
+                    {
+                        data: 'id',
+                        sortable: false,
+                        searchable: false,
+                        width: "5%",
+                        "render": function (data, type, row, full, meta) {
+                            return '<button class="btnEdit" data-id="' + data + '">Edit</button>';
+                        }
+                    },
+                    {
+                        data: 'id',
+                        sortable: false,
+                        searchable: false,
+                        width: "5%",
+                        "render": function (data, type, row, full, meta) {
+                            return '<button class="btnDetail" data-id="' + data + '">Detail</button>';
+                        }
+                    },
+                    {
+                        data: 'id',
+                        sortable: false,
+                        searchable: false,
+                        width: "5%",
+                        "render": function (data, type, row, full, meta) {
+                            return '<button class="btnDelete" data-id="' + data + '">Delete</button>';
+                        }
+                    }
+                ],
+            "fnCreatedRow": function (nRow, aData, iDataIndex) {
+                $(nRow).attr('data-id', aData.id);
+                $(nRow).addClass('tr-' + aData.color);
+                var stat = aData.hasOutStandingBill;
+            },
+        });
+
+        $("#AddNewDevices").on("click", function (e) {
+            window.location.href = "/Home/DevicesCreate";
+        });
+    });
+
+    $(document).on('click', '.btnEdit', function (e) {
+        var dataId = $(this).attr("data-id");
+
+        window.location.href = "/Home/DevicesEdit/" + dataId;
+    });
+
+    $(document).on('click', '.btnDetail', function (e) {
+        var dataId = $(this).attr("data-id");
+        window.location.href = "/Home/DevicesDetail/" + dataId;
+    });
+
+    $(document).on('click', '.btnDelete', function (e) {
+        var dataId = $(this).attr("data-id");
+        var thisBtn = $(this);
+        $.blockUI({ message: '<h1> Just a moment...</h1>' });
+
+        $.ajax({
+            type: "POST",
+            //contentType: "application/x-www-form-urlencoded; charset=UTF-8",
+            //dataType: "json",
+            url: "/Home/DeleteDeviceData",
+            data: { "id": dataId },
+            success: function (result) {
+                $.unblockUI();
+                if (result.isError) {
+                    $.notify(result.msg, "error");
+                    console.log(result.msg);
+                    return false;
+                }
+                else {
+                    $.notify("Delete Device success", "success");
+                    datatable.row(thisBtn.parents('tr')).remove().draw();
+                }
+            },
+            error: function (result) {
+                $.unblockUI();
+            }
+        });
+    });
+</script>
